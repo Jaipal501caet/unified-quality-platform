@@ -27,13 +27,18 @@ The framework operates on a 5-Layer model:
 | **5. Stress** | **K6** | Reuses functional logic to simulate 50+ concurrent users. |
 
 ### Logical Flow
-```mermaid
-graph LR
-A[AI Generator] -->|Data| B(API Layer)
-B -->|Seed Backend| C{Docker DB}
-D[UI Automation] -->|Login| E(Web App)
-D -->|Verify| C
-F[K6 Load Test] -->|Stress| E
+**High-Level logical Setup**
+You have built a Hybrid, AI-Driven, Dockerized Automation Framework.
+
+Infrastructure: You are no longer dependent on local software. You use Docker Compose to spin up a fresh Database for every test run.
+
+The Brain (AI): You use an AI Manager to generate unique, realistic test data (users, emails) instantly, preventing "duplicate data" crashes.
+
+The Hybrid Engine: You mix API (for fast setup) and UI (for user testing). This makes your tests 70% faster than standard Selenium/Playwright suites.
+
+The Judge (DB): You don't trust the UI success message. You connect directly to the SQL Database to verify the data was actually saved.
+
+The Muscle (Performance): You integrated K6 to reuse your functional logic for heavy Load Testing (50+ users).
 
 ### 3. Verify Your Full File List
 Ensure your project looks exactly like this before pushing.
