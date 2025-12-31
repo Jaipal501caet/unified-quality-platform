@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Environment Variables (Secrets)
+.env
+
+# Test Reports & Artifacts
+playwright-report/
+test-results/
+blob-report/
+monocart-reporter/
+
+# System Files
+.DS_Store
+Thumbs.db
