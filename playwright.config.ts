@@ -13,8 +13,8 @@ export default defineConfig({
   reporter: [
     ['list'], // Keep console logs
     ['monocart-reporter', {  
-        name: "Unified Automation Dashboard",
-        outputFile: './test-results/report.html', // Single file output
+        name: "Unified Automation Dashboard-E2E",
+        outputFile: './test-results/e2e-report.html', // Single file output
         
         // Optional: Add custom columns (Owner, Jira ID, etc.)
         columns: [
