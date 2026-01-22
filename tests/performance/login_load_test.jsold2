@@ -1,25 +1,29 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
+// Import BOTH the HTML and Text summary helpers
 import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 
-// --- CONFIGURATION ---
+// --- CONFIGURATION: 50 USERS ---
 export const options = {
   stages: [
-    { duration: '10s', target: 10 },
-    { duration: '30s', target: 50 },
-    { duration: '10s', target: 0 },
+    { duration: '10s', target: 10 }, 
+    { duration: '30s', target: 50 }, 
+    { duration: '10s', target: 0 },  
   ],
   thresholds: {
-    http_req_duration: ['p(95)<2000'], // Increased slightly to 2s to be realistic for this demo site
-    http_req_failed: ['rate<0.01'],    // Fail if > 1% errors
+    http_req_duration: ['p(95)<500'], 
+    http_req_failed: ['rate<0.01'],   
   },
 };
 
 export default function () {
   const url = 'https://parabank.parasoft.com/parabank/login.htm';
-  
-  // ✅ FIX 1: Payload is now a URL-Encoded String (Not JSON)
+/*  const payload = {
+    username: 'john',
+    password: 'demo'
+  };*/
+
   const payload = 'username=john&password=demo';
 
   const params = {
@@ -30,15 +34,9 @@ export default function () {
 
   const res = http.post(url, payload, params);
 
-  // ✅ FIX 2: Check for 302 (Redirect) OR 200 (Success)
-  const isSuccess = check(res, {
-    'is status 302 or 200': (r) => r.status === 302 || r.status === 200,
+  check(res, {
+    'is status 302 (Login Success)': (r) => r.status === 302 || r.status === 200,
   });
-
-  // 💡 DEBUG: Print error if it fails (Helps you see why!)
-  if (!isSuccess) {
-    console.error(`❌ Login Failed! Status: ${res.status} | Body Snippet: ${res.body ? res.body.substring(0, 50) : 'Empty'}`);
-  }
 
   sleep(1);
 }
@@ -46,7 +44,10 @@ export default function () {
 // --- REPORTING ---
 export function handleSummary(data) {
   return {
+    // 1. Unified path to your root 'test-results' folder
     "/src/test-results/performance-report.html": htmlReport(data),
+    
+    // 2. This prints the summary to your terminal (standard output)
     stdout: textSummary(data, { indent: " ", enableColors: true }),
   };
 }
