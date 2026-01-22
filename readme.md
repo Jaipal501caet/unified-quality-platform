@@ -52,7 +52,7 @@ graph TD
     PW -- 3. UI Login Verification --> PB
     
     K6 -- 4. Load Test (50 Users) --> PB
-🧠 Key Innovations (Interview Highlights)
+🧠 Key Innovations
 1. The "Self-Healing" Pattern
 Problem: The legacy Parabank server frequently returns 500 Internal Server Error during registration, even if the user was successfully created. Standard tests fail here. Solution: My ApiController implements a "Trust but Verify" pattern.
 
@@ -107,7 +107,6 @@ Bash
 
 📈 Performance: test-results/performance-report.html
 
-🎯 Senior Engineer Talking Points
 On Flakiness: "I don't just write tests that pass; I write tests that recover. My 'Self-Healing' layer handles the 500 errors inherent in legacy systems so the pipeline stays green."
 
 On Architecture: "I moved away from UI-heavy testing. By using a Hybrid approach (API for setup, UI for intent), I cut execution time by 70%."
