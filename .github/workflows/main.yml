@@ -12,6 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    # 🟢 ADD THIS BLOCK 🟢
+    env:
+      BASE_URL: "https://parabank.parasoft.com/parabank" 
+      # (Or use "http://localhost:8080" if you are running the app in Docker)
+
+
+
+
     steps:
     # 1. Checkout Code
     - name: Checkout Code

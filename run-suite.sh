@@ -1,39 +1,38 @@
 #!/bin/bash
-# -------------------------------------------------------------------------
-# Unified Quality Platform - Orchestration Script
-# -------------------------------------------------------------------------
+set -e 
 
-echo "🚀 [Architect] Starting Infrastructure..."
+# --- CONFIGURATION ---
+# This ensures the script stops immediately if any command fails
+# creating a "Fail Fast" pipeline.
 
-# 1. Start Docker in Detached mode (Background)
-# This spins up the PostgreSQL container defined in your docker-compose.yml
+echo "🚀 [Architect] Starting Unified Pipeline..."
+
+echo "🚀 [Architect] Starting Unified Pipeline..."
+
+# 1. SETUP: Create Results Directory
+# 🟢 FIX: Create folder AND force full permissions so the Container User can write to it
+mkdir -p test-results
+chmod 777 test-results  # <--- ADD THIS LINE
+
+# ... rest of script ...
+
+# 2. INFRASTRUCTURE: Start Database
+echo "📦 [Infra] Starting Database..."
 docker compose up -d db
 
-# 2. Wait for DB to be healthy
-echo "⏳ Waiting 5s for Database to stabilize..."
-sleep 5
+# 3. PHASE 1: Playwright (Functional)
+echo "🧪 [Phase 1] Running Playwright E2E..."
+# TRICK: We use '//bin/bash' so it works on Windows Git Bash AND Linux CI
+# TRICK: We run 'npm install' inside to ensure dependencies exist
+docker compose run --rm e2e //bin/bash -c "npm install && npx playwright test tests/e2e/hybrid_login.spec.ts"
 
-# 3. Ensure the unified results directory exists
-mkdir -p test-results
+# 4. PHASE 2: K6 (Performance)
+echo "🔥 [Phase 2] Running K6 Load Test..."
+# TRICK: We use '//src/...' to prevent Windows path conversion
+docker compose run --rm k6 run //src/tests/performance/register_load_test.js
 
-# 4. Phase 1: Run Playwright E2E Tests (Functional)
-echo "🧪 [Phase 1] Running Playwright E2E Tests..."
-# '|| true' ensures we proceed to performance tests and cleanup even if UI tests fail
-npx playwright test tests/e2e/hybrid_login.spec.ts ||
-
-# 5. Phase 2: Run K6 Performance Tests (Stress)
-echo "🔥 [Phase 2] Running K6 Performance Tests in Docker..."
-# MSYS_NO_PATHCONV=1 is required for Git Bash on Windows to handle the /src mount correctly
-MSYS_NO_PATHCONV=1 docker run --rm -i -v "$(pwd):/src" \
-  grafana/k6 run /src/tests/performance/login_load_test.js ||
-
-# 6. Tear Down Infrastructure
-echo "🧹 [Cleanup] Tearing down Infrastructure..."
+# 5. TEARDOWN
+echo "🧹 [Cleanup] Stopping Containers..."
 docker compose down
 
-echo "------------------------------------------------------------"
-echo "✅ Execution Complete."
-echo "📂 Reports generated in: ./test-results/"
-echo "   - E2E Dashboard: e2e-report.html"
-echo "   - Performance Report: performance-report.html"
-echo "------------------------------------------------------------"
+echo "✅ PIPELINE SUCCESS: All Systems Green."

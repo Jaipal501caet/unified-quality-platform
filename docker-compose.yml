@@ -1,5 +1,5 @@
-version: '3.8'
 services:
+  # --- Service 0: Database ---
   db:
     image: postgres:alpine
     container_name: test_db
@@ -14,3 +14,37 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # --- Service 1: UI Tests (Playwright) ---
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.57.0-jammy 
+    container_name: playwright_runner
+    depends_on:
+      db:
+        condition: service_healthy
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ipc: host
+    environment:
+      - BASE_URL=https://parabank.parasoft.com/parabank
+      - CI=true
+      # 🟢 CRITICAL FIX: Tell the app where the DB is
+      - DB_HOST=db         # Uses the service name defined above
+      - DB_USER=testuser   # Must match POSTGRES_USER above
+      - DB_PASS=password123 # Must match POSTGRES_PASSWORD above
+      - DB_NAME=parabank_db
+      - DB_PORT=5432
+    command: npx playwright test tests/e2e/hybrid_login.spec.ts
+
+  # --- Service 2: Performance Tests (K6) ---
+  k6:
+    image: grafana/k6:latest
+    container_name: k6_runner
+    user: root
+    volumes:
+      - .:/src 
+   # environment:
+    #  - K6_OUT=json=/src/test-results/k6-metrics.json
+    command: version
