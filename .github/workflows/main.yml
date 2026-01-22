@@ -1,0 +1,59 @@
+name: Unified Quality Platform (Hybrid)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  run-suite:
+    name: 🧪 Run E2E & Performance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    # 1. Checkout Code
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 2. Setup Node.js (Because Playwright runs on the host, not in Docker)
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+
+    # 3. Install Dependencies (package.json)
+    - name: Install NPM Dependencies
+      run: npm ci
+
+    # 4. Install Playwright Browsers (Required for Phase 1)
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+
+    # 5. Make your script executable (Linux permission fix)
+    - name: Grant Execute Permission
+      run: chmod +x run-suite.sh
+
+    # ... (Previous steps) ...
+
+    # 6. RUN YOUR SCRIPT (Now without || true)
+    - name: 🚀 Run Full Suite
+      run: ./run-suite.sh
+
+    # 7. SAFETY CLEANUP (New Step)
+    # This runs ALWAYS, even if Step 6 failed and the script crashed.
+    - name: 🛑 Force Teardown
+      if: always()
+      run: docker compose down
+
+    # 8. Upload Reports
+    - name: 📤 Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-reports
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 30

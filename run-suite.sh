@@ -19,13 +19,13 @@ mkdir -p test-results
 # 4. Phase 1: Run Playwright E2E Tests (Functional)
 echo "🧪 [Phase 1] Running Playwright E2E Tests..."
 # '|| true' ensures we proceed to performance tests and cleanup even if UI tests fail
-npx playwright test tests/e2e/hybrid_login.spec.ts || true
+npx playwright test tests/e2e/hybrid_login.spec.ts ||
 
 # 5. Phase 2: Run K6 Performance Tests (Stress)
 echo "🔥 [Phase 2] Running K6 Performance Tests in Docker..."
 # MSYS_NO_PATHCONV=1 is required for Git Bash on Windows to handle the /src mount correctly
 MSYS_NO_PATHCONV=1 docker run --rm -i -v "$(pwd):/src" \
-  grafana/k6 run /src/tests/performance/login_load_test.js || true
+  grafana/k6 run /src/tests/performance/login_load_test.js ||
 
 # 6. Tear Down Infrastructure
 echo "🧹 [Cleanup] Tearing down Infrastructure..."
