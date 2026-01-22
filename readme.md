@@ -52,6 +52,7 @@ graph TD
     PW -- 3. UI Login Verification --> PB
     
     K6 -- 4. Load Test (50 Users) --> PB
+```
 🧠 Key Innovations
 1. The "Self-Healing" Pattern
 Problem: The legacy Parabank server frequently returns 500 Internal Server Error during registration, even if the user was successfully created. Standard tests fail here. Solution: My ApiController implements a "Trust but Verify" pattern.
