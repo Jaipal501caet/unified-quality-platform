@@ -7,7 +7,7 @@ echo "🚀 [Architect] Starting Infrastructure..."
 
 # 1. Start Docker in Detached mode (Background)
 # This spins up the PostgreSQL container defined in your docker-compose.yml
-docker-compose up -d db
+docker compose up -d db
 
 # 2. Wait for DB to be healthy
 echo "⏳ Waiting 5s for Database to stabilize..."
@@ -29,7 +29,7 @@ MSYS_NO_PATHCONV=1 docker run --rm -i -v "$(pwd):/src" \
 
 # 6. Tear Down Infrastructure
 echo "🧹 [Cleanup] Tearing down Infrastructure..."
-docker-compose down
+docker compose down
 
 echo "------------------------------------------------------------"
 echo "✅ Execution Complete."
