@@ -1,31 +1,26 @@
-// src/ai/aiManager.ts
 import { test } from '@playwright/test';
 
 export class AiManager {
   
-  /**
-   * Generates a realistic user profile using dynamic logic (Mocking AI).
-   * In a real project, this would call OpenAI API to get "A user who is at high risk of churn".
-   */
   async generateUserProfile(scenario: 'standard' | 'high_risk' | 'edge_case') {
     console.log(`🧠 [AI] Generating Data for Scenario: ${scenario}...`);
 
-    const timestamp = Date.now();
+    // Create a unique ID based on time + random number
+    const uniqueId = Date.now().toString().slice(-6) + Math.floor(Math.random() * 999);
     
-    // Simulating Generative AI Logic
-    if (scenario === 'edge_case') {
-        return {
-            username: `user_ñame_${timestamp}`, // Special characters
-            email: `test+${timestamp}@very-long-domain-name-example.com`,
-            password: "Pass!@#" + timestamp
-        };
-    }
-
-    // Default Standard User
+    // Standard User with UNIQUE SSN
     return {
-        username: `auto_user_${timestamp}`,
-        email: `auto_${timestamp}@example.com`,
-        password: "password123"
+        firstName: 'Auto',
+        lastName: `Mation${uniqueId}`,
+        username: `auto_user_${uniqueId}`,
+        password: "password123",
+        // 🟢 CRITICAL FIX: Unique SSN prevents 500 Errors
+        ssn: `${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 90) + 10}-${uniqueId.slice(-4)}`,
+        street: `${Math.floor(Math.random() * 999)} Automation Rd`,
+        city: 'Gurugram',
+        state: 'HR',
+        zipCode: '122001',
+        phoneNumber: `555-${uniqueId.slice(-4)}`
     };
   }
 

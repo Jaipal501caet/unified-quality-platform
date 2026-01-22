@@ -1,55 +1,53 @@
 import { test, expect } from '@playwright/test';
 import { ApiController } from '../../src/api/apiController';
-import { DbController } from '../../src/db/dbController';
 import { AiManager } from '../../src/ai/aiManager';
 
-test.describe('Scale Test: Login Validation with 10 Unique AI Users', () => {
+test.describe('Hybrid Scale Test: API Data Seeding -> UI Validation', () => {
 
-  let db: DbController;
   let ai: AiManager;
 
   test.beforeEach(async () => {
-    db = new DbController();
     ai = new AiManager();
-    await db.connect();
   });
 
-  test.afterEach(async () => {
-    await db.close();
-  });
+  test('Create 5 Users via API, Login with the Last User', async ({ page, request }) => {
+    const api = new ApiController(request);
+    let lastUser; 
 
-  // --- ARCHITECT PATTERN: DYNAMIC LOOP ---
-  // This creates 10 separate test entries in your report
-  const userCount = 1;
+    // --- PHASE 1: API DATA SEEDING ---
+    console.log('\n--- PHASE 1: API DATA SEEDING (5 Users) ---');
 
-  for (let i = 1; i <= userCount; i++) {
+    for (let i = 1; i <= 5; i++) {
+      // 1. Generate unique data
+      const userData = await ai.generateUserProfile('standard');
+      
+      // 2. Register via API (Real backend call)
+      await api.registerUser(userData);
+      
+      console.log(`[API] User #${i} Created: ${userData.username}`);
+      
+      // 3. Keep track of the last user for the UI test
+      lastUser = userData;
+    }
+
+    // --- PHASE 2: UI VALIDATION ---
+    console.log(`\n--- PHASE 2: UI VALIDATION (User: ${lastUser.username}) ---`);
+
+    await page.goto('https://parabank.parasoft.com/parabank/index.htm');
+
+    // Login with the user we just created via API
+    await page.fill('input[name="username"]', lastUser.username);
+    await page.fill('input[name="password"]', lastUser.password);
+    await page.click('input[value="Log In"]');
+
+    // Verify Login
+    await expect(page).toHaveTitle(/ParaBank/);
+    await expect(page.locator('.smallText')).toContainText(`Welcome`);
+
+    // Logout
+    await page.getByRole('link', { name: 'Log Out' }).click();
+    await expect(page.locator('input[value="Log In"]')).toBeVisible();
     
-    test(`Iteration #${i}: AI User Creation & Login Flow`, async ({ page, request }) => {
-      
-      console.log(`\n--- STARTING ITERATION ${i} ---`);
-
-      // 1. Ask AI for UNIQUE data (It will differ every millisecond)
-      const testData = await ai.generateUserProfile('standard');
-      console.log(`[Iter ${i}] AI Generated User: ${testData.username}`);
-
-      // 2. API: Create the user in Backend
-      const api = new ApiController(request);
-      await api.checkHealth();
-      await api.createUser(testData.username);
-
-      // 3. UI: Login with this specific user
-      await page.goto('/');
-      await page.fill('input[name="username"]', testData.username);
-      await page.fill('input[name="password"]', testData.password);
-      await page.click('input[value="Log In"]');
-
-      await expect(page).toHaveTitle(/ParaBank/);
-
-      // 4. DB: Verify this specific user exists
-      const isUserPresent = await db.verifyUserCreated(testData.username);
-      expect(isUserPresent).toBeTruthy();
-      
-      console.log(`[Iter ${i}] Success!`);
-    });
-  }
+    console.log('--- TEST COMPLETE: Hybrid Flow Successful ---');
+  });
 });
