@@ -6,34 +6,29 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-  # This environment variable is available to all jobs
-  BASE_URL: "https://parabank.parasoft.com/parabank"
-
 jobs:
-  # ------------------------------------------------------------------
-  # STAGE 1: UI & Functional Testing (Playwright)
-  # ------------------------------------------------------------------
+  # ==================================================================
+  # STAGE 1: Playwright (Hybrid Functional Test)
+  # ==================================================================
   playwright-ui:
     name: 🎭 UI & API Verification
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # We use Docker directly instead of installing Node.js locally.
-      # This ensures the test runs exactly like it does on your machine.
-      - name: Build Containers
-        run: docker compose build
+      # Equivalent to: docker compose build e2e
+      - name: Build UI Container
+        run: docker compose build e2e
 
-      - name: Run Playwright Container
-        # Runs the 'playwright' service defined in your docker-compose.yml
-        # Exits automatically if the tests fail
-        run: docker compose up --exit-code-from playwright playwright
+      # Equivalent to: docker compose run --rm e2e ...
+      # We use /bin/bash (standard Linux) instead of //bin/bash (Windows)
+      - name: 🧪 Run Playwright Suite
+        run: |
+          docker compose run --rm e2e /bin/bash -c "npm install && npx playwright test tests/e2e/hybrid_login.spec.ts"
 
-      - name: 🛑 Teardown (Cleanup)
+      - name: 🛑 Teardown
         if: always()
         run: docker compose down
 
@@ -42,34 +37,33 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: |
-            playwright-report/
-            test-results/
+          path: playwright-report/
           retention-days: 30
 
-  # ------------------------------------------------------------------
-  # STAGE 2: Load Testing (K6)
-  # ------------------------------------------------------------------
+  # ==================================================================
+  # STAGE 2: K6 (Performance Test)
+  # ==================================================================
   k6-load-test:
     name: ⚡ K6 Load Test
-    # 🟢 THIS LINE creates the "Pipeline" visual 🟢
-    # It tells GitHub: "Don't start this until 'playwright-ui' passes"
+    # This 'needs' keyword creates the visual pipeline connection
     needs: playwright-ui
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build Containers
-        run: docker compose build
+      # Equivalent to: docker compose build k6
+      - name: Build K6 Container
+        run: docker compose build k6
 
-      - name: Run K6 Load Test
-        # Runs the 'k6' service defined in your docker-compose.yml
-        run: docker compose up --exit-code-from k6 k6
+      # Equivalent to: docker compose run --rm k6 ...
+      # Note: We use /src/ because your docker-compose maps . to /src
+      - name: 🔥 Run K6 Load Test
+        run: |
+          docker compose run --rm k6 run /src/tests/performance/register_load_test.js
 
-      - name: 🛑 Teardown (Cleanup)
+      - name: 🛑 Teardown
         if: always()
         run: docker compose down
 
@@ -77,5 +71,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: k6-performance-report
+          name: k6-report
           path: test-results/
