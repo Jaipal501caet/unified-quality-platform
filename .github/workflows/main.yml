@@ -1,4 +1,4 @@
-name: Unified Quality Platform (Hybrid)
+name: Unified Quality Pipeline
 
 on:
   push:
@@ -6,62 +6,76 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  # This environment variable is available to all jobs
+  BASE_URL: "https://parabank.parasoft.com/parabank"
+
 jobs:
-  run-suite:
-    name: 🧪 Run E2E & Performance
+  # ------------------------------------------------------------------
+  # STAGE 1: UI & Functional Testing (Playwright)
+  # ------------------------------------------------------------------
+  playwright-ui:
+    name: 🎭 UI & API Verification
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    # 🟢 ADD THIS BLOCK 🟢
-    env:
-      BASE_URL: "https://parabank.parasoft.com/parabank" 
-      # (Or use "http://localhost:8080" if you are running the app in Docker)
+      # We use Docker directly instead of installing Node.js locally.
+      # This ensures the test runs exactly like it does on your machine.
+      - name: Build Containers
+        run: docker compose build
 
+      - name: Run Playwright Container
+        # Runs the 'playwright' service defined in your docker-compose.yml
+        # Exits automatically if the tests fail
+        run: docker compose up --exit-code-from playwright playwright
 
+      - name: 🛑 Teardown (Cleanup)
+        if: always()
+        run: docker compose down
 
+      - name: 📤 Upload UI Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 30
+
+  # ------------------------------------------------------------------
+  # STAGE 2: Load Testing (K6)
+  # ------------------------------------------------------------------
+  k6-load-test:
+    name: ⚡ K6 Load Test
+    # 🟢 THIS LINE creates the "Pipeline" visual 🟢
+    # It tells GitHub: "Don't start this until 'playwright-ui' passes"
+    needs: playwright-ui
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
-    # 1. Checkout Code
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    # 2. Setup Node.js (Because Playwright runs on the host, not in Docker)
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
+      - name: Build Containers
+        run: docker compose build
 
-    # 3. Install Dependencies (package.json)
-    - name: Install NPM Dependencies
-      run: npm ci
+      - name: Run K6 Load Test
+        # Runs the 'k6' service defined in your docker-compose.yml
+        run: docker compose up --exit-code-from k6 k6
 
-    # 4. Install Playwright Browsers (Required for Phase 1)
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+      - name: 🛑 Teardown (Cleanup)
+        if: always()
+        run: docker compose down
 
-    # 5. Make your script executable (Linux permission fix)
-    - name: Grant Execute Permission
-      run: chmod +x run-suite.sh
-
-    # ... (Previous steps) ...
-
-    # 6. RUN YOUR SCRIPT (Now without || true)
-    - name: 🚀 Run Full Suite
-      run: ./run-suite.sh
-
-    # 7. SAFETY CLEANUP (New Step)
-    # This runs ALWAYS, even if Step 6 failed and the script crashed.
-    - name: 🛑 Force Teardown
-      if: always()
-      run: docker compose down
-
-    # 8. Upload Reports
-    - name: 📤 Upload Test Results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-reports
-        path: |
-          playwright-report/
-          test-results/
-        retention-days: 30
+      - name: 📤 Upload Performance Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-performance-report
+          path: test-results/
