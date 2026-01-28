@@ -25,7 +25,6 @@ export class ApiController {
         await this.request.get('https://parabank.parasoft.com/parabank/index.htm');
 
         // 2. Attempt Registration
-        // Note: We removed the manual 'Content-Type' header. Playwright handles it automatically with 'form'.
         const response = await this.request.post('https://parabank.parasoft.com/parabank/register.htm', {
             form: {
                 'customer.firstName': userData.firstName,
@@ -42,16 +41,20 @@ export class ApiController {
             }
         });
 
-        // 3. Robust Handling
+        // 3. Success Handling
         if (response.status() === 200) {
             console.log(`✅ [API] Registration Successful for ${userData.username}`);
             return;
         } 
         
-        // If we get 500, DO NOT fail yet. Check if the user exists.
+        // 4. Self-Healing Logic (Handle 500 Errors)
         if (response.status() === 500) {
             console.warn(`⚠️ [API] Got 500 Error. Verifying if user '${userData.username}' was created anyway...`);
             
+            // Debug: Print the 500 error body just in case verification fails later
+            const errorBody = await response.text();
+            console.log(`   [Debug] 500 Error Body was: ${errorBody.substring(0, 200)}...`); 
+
             const verifyLogin = await this.request.post('https://parabank.parasoft.com/parabank/login.htm', {
                 form: {
                     username: userData.username,
@@ -59,15 +62,24 @@ export class ApiController {
                 }
             });
 
-            // If login redirects (302) or returns 200 with "Log Out" text, it worked.
+            // If login succeeds, we consider registration a success
             if (verifyLogin.url().includes('overview.htm') || (await verifyLogin.text()).includes('Log Out')) {
                 console.log(`✅ [API] SELF-HEALING: User was created despite 500 Error! Proceeding.`);
                 return; 
             }
+            
+            console.error(`❌ [API] Self-healing failed. User '${userData.username}' was NOT created.`);
         }
 
-        // If we really failed
-        throw new Error(`Registration failed with status ${response.status()}`);
+        // 5. Failure Handling (If we reached here, something is wrong)
+        // If status is NOT 200 and NOT a "healed" 500, we must crash and report details.
+        
+        const errorBody = await response.text(); 
+        console.error(`❌ [API Debug] Status: ${response.status()}`);
+        console.error(`❌ [API Debug] Response Body: ${errorBody}`);
+        console.error(`❌ [API Debug] Sent Payload:`, JSON.stringify(userData, null, 2));
+
+        throw new Error(`Registration failed with status ${response.status()} - ${errorBody}`);
 
     } catch (error) {
         console.error(`❌ [API] Critical Failure for ${userData.username}:`, error);
