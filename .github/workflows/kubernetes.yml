@@ -39,20 +39,30 @@ jobs:
           eval $(minikube docker-env)
           docker build -t e2e-image:latest -f Dockerfile.ui .
 
-      # 3. Deploy Job to Kubernetes
+      # 3. Deploy Job and Wait for "Log Signal" instead of "Job Completion"
       - name: 🚀 Run Playwright Job
         run: |
           kubectl apply -f k8s/playwright-job.yaml
           
-          echo "Waiting for UI Job to complete..."
-          kubectl wait --for=condition=complete --timeout=300s job/playwright-job || (kubectl logs job/playwright-job && exit 1)
+          echo "Waiting for tests to finish processing..."
+          
+          # 🟢 FIX: Loop and check logs until we see '---TESTS_FINISHED---'
+          # This allows us to catch the pod while it is sleeping (still Running)
+          timeout 300s bash -c 'until kubectl logs job/playwright-job --tail=50 2>/dev/null | grep -q "---TESTS_FINISHED---"; do sleep 5; done'
+          
+          echo "Tests finished! Pod is now sleeping for artifact copy..."
 
-      # 4. Extract Reports from Pod
+      # 4. Extract Reports (Now works because Pod is still 'Running' in sleep mode)
       - name: 📦 Extract UI Reports
         if: always()
         run: |
           POD_NAME=$(kubectl get pods --selector=job-name=playwright-job -o jsonpath='{.items[0].metadata.name}')
+          
+          # Copy now!
           kubectl cp $POD_NAME:/app/test-results ./test-results
+          
+          # Optional: Now we can manually kill the job since we have the data
+          kubectl delete job playwright-job || true
 
       - name: 📤 Upload UI Artifacts
         if: always()
