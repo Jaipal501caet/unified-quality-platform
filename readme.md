@@ -4,7 +4,7 @@ Markdown
 
 ![Architecture](https://img.shields.io/badge/Architecture-Hybrid-blueviolet) ![Resilience](https://img.shields.io/badge/Self--Healing-Active-green) ![Docker](https://img.shields.io/badge/Containerized-Ready-blue)
 
-A Self-Healing, AI-Powered, Cloud-Native Automation Platform designed to orchestrate scalable testing for legacy & modern applications with 99.9% reliability.
+A Self-Healing, AI-Powered, Cloud-Native Automation Platform designed to orchestrate scalable testing for legacy & modern applications with 99.9% reliability. It involves API, UI, Load test, Docker container, Kubernetes. 
 
 ---
 
@@ -26,12 +26,16 @@ The "Three Pillars of Reliability" implemented here:
 
 ## 🏗️ The 4-Layer Architecture
 
-Layer,Component,Responsibility,Architectural Value
-Brain,AiManager.ts,"Generates unique, valid test data instantly.","Eliminates ""Data Collision"" & ""Duplicate User"" errors."
-Resilience,ApiController.ts,Handles setup & Self-Healing.,"Detects 500 Errors, verifies state, and ""heals"" the test instead of failing."
-Scale,Kubernetes (K8s),Orchestrates Test Pods.,Splits test suites across multiple pods to reduce execution time by 80%.
-Stress,Dockerized K6,High-concurrency load injection.,Reuses functional logic to prove the system handles scale.
+We treat automation as software development, organizing code into distinct architectural layers:
 
+| Layer | Component | Responsibility | Architectural Value |
+| :--- | :--- | :--- | :--- |
+| **Brain** | `AiManager.ts` | Generates unique, valid test data instantly. | Eliminates "Data Collision" & "Duplicate User" errors. |
+| **Resilience** | `ApiController.ts` | Handles setup & **Self-Healing**. | Detects `500 Errors`, verifies state, and "heals" the test instead of failing. |
+| **Scale** | **Kubernetes (K8s)** | Orchestrates Test Pods. | Splits test suites across multiple pods to reduce execution time by 80%. |
+| **Stress** | `Dockerized K6` | High-concurrency load injection. | Reuses functional logic to prove the system handles scale. |
+
+```mermaid
 graph TD
     %% Define Styles
     classDef target fill:#ffcccc,stroke:#ff0000,stroke-width:2px;
@@ -60,34 +64,26 @@ graph TD
 
     %% Apply Style to Target
     class Legacy target
+```
+
 🧠 Key Innovations
 1. The "Self-Healing" Pattern
 Problem: Legacy servers frequently return 500 Internal Server Error during registration, even if the user was successfully created. Standard tests fail here.
-
 Solution: The ApiController implements a "Trust but Verify" pattern.
-
 If API returns 200 OK → Proceed.
-
 If API returns 500 Error → Do not fail. Instead, attempt a "Backdoor Login."
-
 If Login succeeds → Mark registration as "Healed" and continue.
-
 Result: Reduced pipeline flakiness by ~90%.
 
-2. Kubernetes Orchestration (The "Interview Feature")
+2. Kubernetes Orchestration:
 Problem: Running 500 regression tests sequentially takes hours.
-
 Solution: We leverage Kubernetes Jobs to shard execution.
-
 UI Tests: We set parallelism: 3 in playwright-job.yaml to spin up 3 simultaneous pods, cutting execution time by 66%.
-
 Load Tests: We set parallelism: 5 in k6-job.yaml to simulate distributed traffic from multiple "machines."
-
 Proof: The CI pipeline verifies that multiple unique pods (k6-job-xf92a, k6-job-pq83b) are actively handling the workload.
 
 3. AI-Driven Data Seeding
 Problem: Hardcoding username: "testuser" causes failure on the second run.
-
 Solution: The AiManager generates a fresh identity for every single iteration. This allows parallel shards to run without ever colliding.
 
 📂 Project Structure
@@ -145,25 +141,16 @@ kubectl apply -f k8s/k6-job.yaml
 
 🤖 CI/CD Pipelines
 This repository features a Dual-Pipeline Architecture:
-
-Unified Quality Pipeline (main.yml):
-
+**Unified Quality Pipeline (main.yml):**
 Runs on every push.
-
 Uses Docker Compose.
-
 Ensures code stability for every commit.
 
-Kubernetes Orchestration Pipeline (kubernetes.yml):
-
+**Kubernetes Orchestration Pipeline (kubernetes.yml):**
 Triggered manually or when k8s/ files change.
-
 Deploys to a Minikube Cluster inside the GitHub Runner.
-
 Verifies Scaling: It explicitly logs active pods to prove parallelism is working.
 
-On Flakiness: "I don't just write tests that pass; I write tests that recover. My 'Self-Healing' layer handles the 500 errors inherent in legacy systems so the pipeline stays green."
-
-On Scalability: "I moved beyond simple scripts. By containerizing my tests and using Kubernetes Jobs, I can scale from 1 user to 10,000 users or from 1 thread to 50 threads just by changing a single line of YAML."
-
-On Architecture: "This isn't just a test framework; it's a cloud-native quality platform. It supports hybrid execution (API + UI) and orchestration (K8s) out of the box."
+**On Flakiness:** "I don't just write tests that pass; I write tests that recover. My 'Self-Healing' layer handles the 500 errors inherent in legacy systems so the pipeline stays green."
+**On Scalability:** "I moved beyond simple scripts. By containerizing my tests and using Kubernetes Jobs, I can scale from 1 user to 10,000 users or from 1 thread to 50 threads just by changing a single line of YAML."
+**On Architecture:** "This isn't just a test framework; it's a cloud-native quality platform. It supports hybrid execution (API + UI) and orchestration (K8s) out of the box."
