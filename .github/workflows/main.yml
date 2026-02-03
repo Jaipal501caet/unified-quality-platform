@@ -60,6 +60,7 @@ jobs:
       # Equivalent to: docker compose run --rm k6 ...
       # Note: We use /src/ because your docker-compose maps . to /src
       - name: 🔥 Run K6 Load Test
+          mkdir -p src/test-results
         run: |
           docker compose run --rm k6 run /src/tests/performance/register_load_test.js
 
