@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-job
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: k6-container
+        image: k6-image:latest
+        imagePullPolicy: Never
+        command: ["k6", "run", "tests/performance/register_load_test.js"]
+      restartPolicy: Never
