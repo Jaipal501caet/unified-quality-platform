@@ -44,7 +44,10 @@ services:
     container_name: k6_runner
     user: root
     volumes:
-      - .:/src 
+      # 🟢 FIX: Map root (.) to '/app' instead of '/src'
+      - ./:/app
+    # 🟢 FIX: Set working directory to '/app' so all commands run from root
+    working_dir: /app 
    # environment:
     #  - K6_OUT=json=/src/test-results/k6-metrics.json
     command: version
