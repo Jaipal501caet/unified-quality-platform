@@ -1,0 +1,107 @@
+name: ☸️ Kubernetes Orchestration Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  # ==================================================================
+  # STAGE 1: Playwright on Kubernetes
+  # ==================================================================
+  k8s-ui-test:
+    name: ☸️ UI Tests (Minikube)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Start Kubernetes Environment
+      - name: ☸️ Start Minikube
+        uses: medyagh/setup-minikube@master
+
+      # 2. Build Docker Image (Required for K8s to use)
+      # We create a simple Dockerfile on the fly for Playwright
+      - name: 🐳 Build UI Image
+        run: |
+          echo "FROM mcr.microsoft.com/playwright:v1.41.0-jammy" > Dockerfile.ui
+          echo "WORKDIR /app" >> Dockerfile.ui
+          echo "COPY . ." >> Dockerfile.ui
+          echo "RUN npm install" >> Dockerfile.ui
+          
+          # Build and Point Minikube to this image
+          eval $(minikube docker-env)
+          docker build -t e2e-image:latest -f Dockerfile.ui .
+
+      # 3. Deploy Job to Kubernetes
+      - name: 🚀 Run Playwright Job
+        run: |
+          kubectl apply -f k8s/playwright-job.yaml
+          
+          echo "Waiting for UI Job to complete..."
+          kubectl wait --for=condition=complete --timeout=300s job/playwright-job || (kubectl logs job/playwright-job && exit 1)
+
+      # 4. Extract Reports from Pod
+      - name: 📦 Extract UI Reports
+        if: always()
+        run: |
+          POD_NAME=$(kubectl get pods --selector=job-name=playwright-job -o jsonpath='{.items[0].metadata.name}')
+          kubectl cp $POD_NAME:/app/test-results ./test-results
+
+      - name: 📤 Upload UI Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k8s-playwright-report
+          path: test-results/
+          retention-days: 30
+
+  # ==================================================================
+  # STAGE 2: K6 on Kubernetes
+  # ==================================================================
+  k8s-load-test:
+    name: ☸️ K6 Load Test (Minikube)
+    needs: k8s-ui-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ☸️ Start Minikube
+        uses: medyagh/setup-minikube@master
+
+      # 1. Build K6 Image
+      - name: 🐳 Build K6 Image
+        run: |
+          echo "FROM grafana/k6:latest" > Dockerfile.k6
+          echo "COPY . /app" >> Dockerfile.k6
+          echo "WORKDIR /app" >> Dockerfile.k6
+          
+          eval $(minikube docker-env)
+          docker build -t k6-image:latest -f Dockerfile.k6 .
+
+      # 2. Deploy Job
+      - name: 🔥 Run K6 Job
+        run: |
+          kubectl apply -f k8s/k6-job.yaml
+          
+          echo "Waiting for Load Test to complete..."
+          kubectl wait --for=condition=complete --timeout=300s job/k6-job || (kubectl logs job/k6-job && exit 1)
+
+      - name: 📦 Extract Performance Report
+        if: always()
+        run: |
+          POD_NAME=$(kubectl get pods --selector=job-name=k6-job -o jsonpath='{.items[0].metadata.name}')
+          # Note: We use the simplified path '/app/src/test-results' based on our Dockerfile structure
+          kubectl cp $POD_NAME:/app/src/test-results ./src/test-results
+
+      - name: 📤 Upload K6 Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k8s-k6-report
+          path: src/test-results/
