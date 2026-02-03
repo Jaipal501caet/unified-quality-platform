@@ -1,11 +1,14 @@
-name: ☸️ Kubernetes Orchestration Pipeline
+name: Kubernetes Orchestration Pipeline
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+    # 🟢 CHANGE: Only trigger if files in 'k8s/' folder or this workflow file change
+    paths:
+      - 'k8s/**'
+      - '.github/workflows/kubernetes.yml'
+  
+  workflow_dispatch: # Keep the manual button too!
 
 jobs:
   # ==================================================================
@@ -24,10 +27,10 @@ jobs:
         uses: medyagh/setup-minikube@master
 
       # 2. Build Docker Image (Required for K8s to use)
-      # We create a simple Dockerfile on the fly for Playwright
       - name: 🐳 Build UI Image
         run: |
-          echo "FROM mcr.microsoft.com/playwright:v1.41.0-jammy" > Dockerfile.ui
+          # 🟢 FIX: Updated version from v1.41.0 to v1.57.0 to match your package.json
+          echo "FROM mcr.microsoft.com/playwright:v1.57.0-jammy" > Dockerfile.ui
           echo "WORKDIR /app" >> Dockerfile.ui
           echo "COPY . ." >> Dockerfile.ui
           echo "RUN npm install" >> Dockerfile.ui
