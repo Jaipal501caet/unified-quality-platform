@@ -79,10 +79,11 @@ export default function () {
 }
 
 // --- REPORTING ---
+// register_load_test.js
 export function handleSummary(data) {
   return {
-    // 🟢 FIX: Use absolute path '/src/' to guarantee the folder is found
-    "performance-report.html": htmlReport(data),
+    // 🟢 FIX: Simple relative path from project root
+    "src/test-results/performance-report.html": htmlReport(data),
     
     stdout: textSummary(data, { indent: " ", enableColors: true }),
   };
