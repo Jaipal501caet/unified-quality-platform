@@ -1,4 +1,4 @@
-name: Unified Quality Pipeline
+name: Test run with Docker containers
 
 on:
   push:
