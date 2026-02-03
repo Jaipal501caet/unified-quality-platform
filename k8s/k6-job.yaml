@@ -12,5 +12,7 @@ spec:
       - name: k6-container
         image: k6-image:latest
         imagePullPolicy: Never
-        command: ["k6", "run", "tests/performance/register_load_test.js"]
+        # 🟢 FIX: Use 'sh -c' to run K6, then print a flag, then sleep!
+        command: ["/bin/sh", "-c"]
+        args: ["k6 run /app/tests/performance/register_load_test.js; echo '---K6_FINISHED---'; sleep 60"]
       restartPolicy: Never
