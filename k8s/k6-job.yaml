@@ -3,6 +3,8 @@ kind: Job
 metadata:
   name: k6-job
 spec:
+  # 🟢 ADD THIS: 1 pod = Standard Load. 10 pods = Massive Distributed Load.
+  parallelism: 2
   backoffLimit: 0
   template:
     spec:
