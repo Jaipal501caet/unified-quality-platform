@@ -32,8 +32,10 @@ Resilience,ApiController.ts,Handles setup & Self-Healing.,"Detects 500 Errors, v
 Scale,Kubernetes (K8s),Orchestrates Test Pods.,Splits test suites across multiple pods to reduce execution time by 80%.
 Stress,Dockerized K6,High-concurrency load injection.,Reuses functional logic to prove the system handles scale.
 
-```mermaid
 graph TD
+    %% Define Styles
+    classDef target fill:#ffcccc,stroke:#ff0000,stroke-width:2px;
+
     subgraph CI_CD_Pipeline [GitHub Actions / CI]
         Trigger[Push / Dispatch] --> DockerMode[Mode A: Docker Compose]
         Trigger --> K8sMode[Mode B: Kubernetes Cluster]
@@ -45,15 +47,19 @@ graph TD
     end
 
     subgraph Mode_B [Orchestrated Scaling]
-        K8s[Minikube Cluster] --> Job1[UI Job (Parallelism: 3)]
-        K8s --> Job2[Load Job (Parallelism: 5)]
+        K8s[Minikube Cluster] --> Job1[UI Job / Parallelism: 3]
+        K8s --> Job2[Load Job / Parallelism: 5]
         
-        Job1 --> Pod1[Pod A] & Pod2[Pod B] & Pod3[Pod C]
-        Job2 --> Gen1[Generator A] & Gen2[Generator B]
+        Job1 --> Pod1[UI Pod A] & Pod2[UI Pod B] & Pod3[UI Pod C]
+        Job2 --> Gen1[Load Gen A] & Gen2[Load Gen B]
     end
     
-    E2E_Cont & Pod1 & Pod2 --> Legacy[Legacy App Server]
-```
+    %% All executors target the application
+    E2E_Cont & Pod1 & Pod2 & Pod3 --> Legacy[Legacy App Server]
+    K6_Cont & Gen1 & Gen2 -.-> Legacy
+
+    %% Apply Style to Target
+    class Legacy target
 🧠 Key Innovations
 1. The "Self-Healing" Pattern
 Problem: Legacy servers frequently return 500 Internal Server Error during registration, even if the user was successfully created. Standard tests fail here.
