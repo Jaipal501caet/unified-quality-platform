@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: playwright-job
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: e2e-container
+        image: e2e-image:latest
+        imagePullPolicy: Never
+        command: ["/bin/bash", "-c"]
+        args: ["npx playwright test tests/e2e/hybrid_login.spec.ts"]
+      restartPolicy: Never
