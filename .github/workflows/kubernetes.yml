@@ -47,8 +47,8 @@ jobs:
           echo "Waiting for tests to finish processing..."
           
           # 🟢 FIX: Loop and check logs until we see '---TESTS_FINISHED---'
-          # This allows us to catch the pod while it is sleeping (still Running)
-          timeout 300s bash -c 'until kubectl logs job/playwright-job --tail=50 2>/dev/null | grep -q "---TESTS_FINISHED---"; do sleep 5; done'
+          # 🟢 FIX: Removed dashes from grep to prevent syntax error
+          timeout 300s bash -c 'until kubectl logs job/playwright-job --tail=50 2>/dev/null | grep -q "TESTS_FINISHED"; do sleep 5; done'
           
           echo "Tests finished! Pod is now sleeping for artifact copy..."
 
