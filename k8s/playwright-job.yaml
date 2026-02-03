@@ -11,5 +11,7 @@ spec:
         image: e2e-image:latest
         imagePullPolicy: Never
         command: ["/bin/bash", "-c"]
-        args: ["npx playwright test tests/e2e/hybrid_login.spec.ts"]
+        # 🟢 FIX: Run tests, THEN print a flag, THEN sleep for 60s to allow copying
+        # We use ';' so it sleeps even if the test fails!
+        args: ["npx playwright test tests/e2e/hybrid_login.spec.ts; echo '---TESTS_FINISHED---'; sleep 60"]
       restartPolicy: Never
